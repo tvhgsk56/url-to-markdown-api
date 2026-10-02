@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+trafilatura
+requests
+beautifulsoup4
