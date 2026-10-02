@@ -61,7 +61,7 @@ def extract_url_content(data: ExtractRequest):
         },
         "markdown": markdown_content
     }
-    @app.get("/")
+@app.get("/")
 @app.head("/")
 async def root():
     return {"message": "API is running"}
