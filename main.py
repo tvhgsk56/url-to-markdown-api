@@ -112,7 +112,9 @@ def extract_url_content(data: ExtractRequest, x_rapidapi_proxy_secret: str = Hea
         },
         "markdown": markdown_content
     }
+@app.get("")
 @app.get("/")
+@app.head("")
 @app.head("/")
 async def root():
     return {"message": "API is running"}
