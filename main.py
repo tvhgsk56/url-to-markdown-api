@@ -1,15 +1,59 @@
 import os
+import socket
+from ipaddress import ip_address
+from urllib.parse import urlparse
 from fastapi import FastAPI, Header, HTTPException, status
 from pydantic import BaseModel, HttpUrl
 import trafilatura
 import requests
 from bs4 import BeautifulSoup
-
 app = FastAPI(
     title="URL to Markdown & OpenGraph Extractor",
     description="Converts web pages into clean Markdown and extracts social metadata for LLM pipelines and apps.",
     version="1.0.0"
 )
+def validate_url_security(target_url: str) -> str:
+    """Validates URL protocol and prevents SSRF by blocking private IP targets."""
+    parsed = urlparse(target_url)
+    
+    # Enforce HTTP/HTTPS only
+    if parsed.scheme not in ("http", "https"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid URL scheme. Only http and https are allowed."
+        )
+
+    hostname = parsed.hostname
+    if not hostname:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid URL hostname."
+        )
+
+    # Prevent explicit localhost access
+    if hostname.lower() in ("localhost", "127.0.0.1", "0.0.0.0"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Access to internal/local addresses is forbidden."
+        )
+
+    # Resolve DNS hostname and inspect IP address
+    try:
+        resolved_ip = socket.gethostbyname(hostname)
+        ip_obj = ip_address(resolved_ip)
+        
+        if ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_link_local:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Access to private or local IP ranges is forbidden."
+            )
+    except socket.gaierror:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Could not resolve target domain name."
+        )
+
+    return target_url
 EXPECTED_SECRET = os.getenv("RAPIDAPI_PROXY_SECRET")
 class ExtractRequest(BaseModel):
     url: HttpUrl
@@ -25,7 +69,8 @@ def extract_url_content(data: ExtractRequest, x_rapidapi_proxy_secret: str = Hea
             status_code=status.HTTP_403_FORBIDDEN, 
             detail="Access denied: Requests must go through RapidAPI."
         )
-    target_url = str(data.url)
+ raw_url = str(data.url)
+target_url = validate_url_security(raw_url)
     
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
