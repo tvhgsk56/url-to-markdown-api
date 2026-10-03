@@ -72,7 +72,7 @@ def extract_url_content(data: ExtractRequest, x_rapidapi_proxy_secret: str = Hea
 
     raw_url = str(data.url).strip()
     target_url = validate_url_security(raw_url)
-
+    
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
@@ -80,7 +80,7 @@ def extract_url_content(data: ExtractRequest, x_rapidapi_proxy_secret: str = Hea
     try:
         response = requests.get(target_url, headers=headers, timeout=10)
         response.raise_for_status()
-except Exception as e:
+    except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to fetch URL: {str(e)}")
 
     soup = BeautifulSoup(response.text, "html.parser")
