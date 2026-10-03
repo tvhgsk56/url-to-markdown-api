@@ -80,9 +80,10 @@ def extract_url_content(data: ExtractRequest, x_rapidapi_proxy_secret: str = Hea
     try:
         response = requests.get(target_url, headers=headers, timeout=10)
         response.raise_for_status()
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to fetch URL: {str(e)}")    soup = BeautifulSoup(response.text, "html.parser")
-    
+except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to fetch URL: {str(e)}")
+
+    soup = BeautifulSoup(response.text, "html.parser")
     title = soup.find("property", {"property": "og:title"}) or soup.find("title")
     title_text = title.get("content") if title and title.get("content") else (title.string if title else "")
     
