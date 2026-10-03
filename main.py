@@ -56,7 +56,7 @@ def validate_url_security(target_url: str) -> str:
     return target_url
 EXPECTED_SECRET = os.getenv("RAPIDAPI_PROXY_SECRET")
 class ExtractRequest(BaseModel):
-    url: HttpUrl
+    url: str
 
 @app.get("/")
 def health_check():
@@ -69,7 +69,7 @@ def extract_url_content(data: ExtractRequest, x_rapidapi_proxy_secret: str = Hea
             status_code=status.HTTP_403_FORBIDDEN, 
             detail="Access denied: Requests must go through RapidAPI."
         )
- raw_url = str(data.url)
+raw_url = str(data.url).strip()
 target_url = validate_url_security(raw_url)
     
     headers = {
