@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException
+import os
+from fastapi import FastAPI, Header, HTTPException, status
 from pydantic import BaseModel, HttpUrl
 import trafilatura
 import requests
@@ -9,7 +10,7 @@ app = FastAPI(
     description="Converts web pages into clean Markdown and extracts social metadata for LLM pipelines and apps.",
     version="1.0.0"
 )
-
+EXPECTED_SECRET = os.getenv("RAPIDAPI_PROXY_SECRET")
 class ExtractRequest(BaseModel):
     url: HttpUrl
 
@@ -18,7 +19,12 @@ def health_check():
     return {"status": "ok", "message": "API is running!"}
 
 @app.post("/extract")
-def extract_url_content(data: ExtractRequest):
+def extract_url_content(data: ExtractRequest, x_rapidapi_proxy_secret: str = Header(None)):
+    if x_rapidapi_proxy_secret != EXPECTED_SECRET:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Access denied: Requests must go through RapidAPI."
+        )
     target_url = str(data.url)
     
     headers = {
